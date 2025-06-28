@@ -450,9 +450,11 @@ pub const MAPS_RELAX_COMPAT: u32 = 1;
 pub const BPF_LOG_BUF_SIZE: u32 = 16777215;
 pub const XDP_DEFAULT_RUN_PRIO: u32 = 50;
 pub const XDP_BPFFS_ENVVAR: &[u8; 13] = b"LIBXDP_BPFFS\0";
+pub const XDP_BPFFS_MOUNT_ENVVAR: &[u8; 23] = b"LIBXDP_BPFFS_AUTOMOUNT\0";
 pub const XDP_OBJECT_ENVVAR: &[u8; 19] = b"LIBXDP_OBJECT_PATH\0";
 pub const XDP_METADATA_SECTION: &[u8; 13] = b"xdp_metadata\0";
-pub const XDP_DISPATCHER_VERSION: u32 = 1;
+pub const XDP_DISPATCHER_VERSION: u32 = 2;
+pub const XDP_DISPATCHER_MAGIC: u32 = 236;
 pub const XDP_DISPATCHER_RETVAL: u32 = 31;
 pub const MAX_DISPATCHER_ACTIONS: u32 = 10;
 pub const XDP_SHARED_UMEM: u32 = 1;
@@ -11044,7 +11046,20 @@ unsafe extern "C" {
     pub fn xdp_program__from_pin(pin_path: *const ::std::os::raw::c_char) -> *mut xdp_program;
 }
 unsafe extern "C" {
+    pub fn xdp_program__clone(
+        xdp_prog: *mut xdp_program,
+        flags: ::std::os::raw::c_uint,
+    ) -> *mut xdp_program;
+}
+unsafe extern "C" {
     pub fn xdp_program__close(xdp_prog: *mut xdp_program);
+}
+unsafe extern "C" {
+    pub fn xdp_program__test_run(
+        xdp_prog: *mut xdp_program,
+        opts: *mut bpf_test_run_opts,
+        flags: ::std::os::raw::c_uint,
+    ) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
     pub fn xdp_program__is_attached(
@@ -11097,6 +11112,15 @@ unsafe extern "C" {
         prog: *const xdp_program,
         buf: *mut ::std::os::raw::c_char,
         buf_len: usize,
+    ) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
+    pub fn xdp_program__xdp_frags_support(prog: *const xdp_program) -> bool;
+}
+unsafe extern "C" {
+    pub fn xdp_program__set_xdp_frags_support(
+        prog: *mut xdp_program,
+        frags: bool,
     ) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
@@ -11169,38 +11193,216 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub fn xdp_multiprog__program_count(mp: *const xdp_multiprog) -> ::std::os::raw::c_int;
 }
+unsafe extern "C" {
+    pub fn xdp_multiprog__xdp_frags_support(mp: *const xdp_multiprog) -> bool;
+}
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct xdp_dispatcher_config {
-    pub num_progs_enabled: __u8,
-    pub chain_call_actions: [__u32; 10usize],
-    pub run_prios: [__u32; 10usize],
+#[derive(Debug, Copy, Clone)]
+pub struct xdp_program_opts {
+    pub sz: usize,
+    pub obj: *mut bpf_object,
+    pub opts: *mut bpf_object_open_opts,
+    pub prog_name: *const ::std::os::raw::c_char,
+    pub find_filename: *const ::std::os::raw::c_char,
+    pub open_filename: *const ::std::os::raw::c_char,
+    pub pin_path: *const ::std::os::raw::c_char,
+    pub id: __u32,
+    pub fd: ::std::os::raw::c_int,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of xdp_dispatcher_config"][::std::mem::size_of::<xdp_dispatcher_config>() - 84usize];
+    ["Size of xdp_program_opts"][::std::mem::size_of::<xdp_program_opts>() - 64usize];
+    ["Alignment of xdp_program_opts"][::std::mem::align_of::<xdp_program_opts>() - 8usize];
+    ["Offset of field: xdp_program_opts::sz"]
+        [::std::mem::offset_of!(xdp_program_opts, sz) - 0usize];
+    ["Offset of field: xdp_program_opts::obj"]
+        [::std::mem::offset_of!(xdp_program_opts, obj) - 8usize];
+    ["Offset of field: xdp_program_opts::opts"]
+        [::std::mem::offset_of!(xdp_program_opts, opts) - 16usize];
+    ["Offset of field: xdp_program_opts::prog_name"]
+        [::std::mem::offset_of!(xdp_program_opts, prog_name) - 24usize];
+    ["Offset of field: xdp_program_opts::find_filename"]
+        [::std::mem::offset_of!(xdp_program_opts, find_filename) - 32usize];
+    ["Offset of field: xdp_program_opts::open_filename"]
+        [::std::mem::offset_of!(xdp_program_opts, open_filename) - 40usize];
+    ["Offset of field: xdp_program_opts::pin_path"]
+        [::std::mem::offset_of!(xdp_program_opts, pin_path) - 48usize];
+    ["Offset of field: xdp_program_opts::id"]
+        [::std::mem::offset_of!(xdp_program_opts, id) - 56usize];
+    ["Offset of field: xdp_program_opts::fd"]
+        [::std::mem::offset_of!(xdp_program_opts, fd) - 60usize];
+};
+impl Default for xdp_program_opts {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+unsafe extern "C" {
+    pub fn xdp_program__create(opts: *mut xdp_program_opts) -> *mut xdp_program;
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct xdp_dispatcher_config {
+    pub magic: __u8,
+    pub dispatcher_version: __u8,
+    pub num_progs_enabled: __u8,
+    pub is_xdp_frags: __u8,
+    pub chain_call_actions: [__u32; 10usize],
+    pub run_prios: [__u32; 10usize],
+    pub program_flags: [__u32; 10usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of xdp_dispatcher_config"][::std::mem::size_of::<xdp_dispatcher_config>() - 124usize];
     ["Alignment of xdp_dispatcher_config"]
         [::std::mem::align_of::<xdp_dispatcher_config>() - 4usize];
+    ["Offset of field: xdp_dispatcher_config::magic"]
+        [::std::mem::offset_of!(xdp_dispatcher_config, magic) - 0usize];
+    ["Offset of field: xdp_dispatcher_config::dispatcher_version"]
+        [::std::mem::offset_of!(xdp_dispatcher_config, dispatcher_version) - 1usize];
     ["Offset of field: xdp_dispatcher_config::num_progs_enabled"]
-        [::std::mem::offset_of!(xdp_dispatcher_config, num_progs_enabled) - 0usize];
+        [::std::mem::offset_of!(xdp_dispatcher_config, num_progs_enabled) - 2usize];
+    ["Offset of field: xdp_dispatcher_config::is_xdp_frags"]
+        [::std::mem::offset_of!(xdp_dispatcher_config, is_xdp_frags) - 3usize];
     ["Offset of field: xdp_dispatcher_config::chain_call_actions"]
         [::std::mem::offset_of!(xdp_dispatcher_config, chain_call_actions) - 4usize];
     ["Offset of field: xdp_dispatcher_config::run_prios"]
         [::std::mem::offset_of!(xdp_dispatcher_config, run_prios) - 44usize];
+    ["Offset of field: xdp_dispatcher_config::program_flags"]
+        [::std::mem::offset_of!(xdp_dispatcher_config, program_flags) - 84usize];
 };
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[repr(align(64))]
+#[derive(Copy, Clone)]
 pub struct datarec {
+    pub processed: usize,
+    pub dropped: usize,
+    pub issue: usize,
+    pub __bindgen_anon_1: datarec__bindgen_ty_1,
+    pub xdp_drop: usize,
+    pub xdp_redirect: usize,
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union datarec__bindgen_ty_1 {
+    pub xdp_pass: usize,
+    pub info: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of datarec__bindgen_ty_1"][::std::mem::size_of::<datarec__bindgen_ty_1>() - 8usize];
+    ["Alignment of datarec__bindgen_ty_1"]
+        [::std::mem::align_of::<datarec__bindgen_ty_1>() - 8usize];
+    ["Offset of field: datarec__bindgen_ty_1::xdp_pass"]
+        [::std::mem::offset_of!(datarec__bindgen_ty_1, xdp_pass) - 0usize];
+    ["Offset of field: datarec__bindgen_ty_1::info"]
+        [::std::mem::offset_of!(datarec__bindgen_ty_1, info) - 0usize];
+};
+impl Default for datarec__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of datarec"][::std::mem::size_of::<datarec>() - 64usize];
+    ["Alignment of datarec"][::std::mem::align_of::<datarec>() - 64usize];
+    ["Offset of field: datarec::processed"][::std::mem::offset_of!(datarec, processed) - 0usize];
+    ["Offset of field: datarec::dropped"][::std::mem::offset_of!(datarec, dropped) - 8usize];
+    ["Offset of field: datarec::issue"][::std::mem::offset_of!(datarec, issue) - 16usize];
+    ["Offset of field: datarec::xdp_drop"][::std::mem::offset_of!(datarec, xdp_drop) - 32usize];
+    ["Offset of field: datarec::xdp_redirect"]
+        [::std::mem::offset_of!(datarec, xdp_redirect) - 40usize];
+};
+impl Default for datarec {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct xdp_stats_record {
+    pub __bindgen_anon_1: xdp_stats_record__bindgen_ty_1,
+    pub __bindgen_anon_2: xdp_stats_record__bindgen_ty_2,
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union xdp_stats_record__bindgen_ty_1 {
+    pub packets: __u64,
     pub rx_packets: __u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of xdp_stats_record__bindgen_ty_1"]
+        [::std::mem::size_of::<xdp_stats_record__bindgen_ty_1>() - 8usize];
+    ["Alignment of xdp_stats_record__bindgen_ty_1"]
+        [::std::mem::align_of::<xdp_stats_record__bindgen_ty_1>() - 8usize];
+    ["Offset of field: xdp_stats_record__bindgen_ty_1::packets"]
+        [::std::mem::offset_of!(xdp_stats_record__bindgen_ty_1, packets) - 0usize];
+    ["Offset of field: xdp_stats_record__bindgen_ty_1::rx_packets"]
+        [::std::mem::offset_of!(xdp_stats_record__bindgen_ty_1, rx_packets) - 0usize];
+};
+impl Default for xdp_stats_record__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union xdp_stats_record__bindgen_ty_2 {
+    pub bytes: __u64,
     pub rx_bytes: __u64,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of datarec"][::std::mem::size_of::<datarec>() - 16usize];
-    ["Alignment of datarec"][::std::mem::align_of::<datarec>() - 8usize];
-    ["Offset of field: datarec::rx_packets"][::std::mem::offset_of!(datarec, rx_packets) - 0usize];
-    ["Offset of field: datarec::rx_bytes"][::std::mem::offset_of!(datarec, rx_bytes) - 8usize];
+    ["Size of xdp_stats_record__bindgen_ty_2"]
+        [::std::mem::size_of::<xdp_stats_record__bindgen_ty_2>() - 8usize];
+    ["Alignment of xdp_stats_record__bindgen_ty_2"]
+        [::std::mem::align_of::<xdp_stats_record__bindgen_ty_2>() - 8usize];
+    ["Offset of field: xdp_stats_record__bindgen_ty_2::bytes"]
+        [::std::mem::offset_of!(xdp_stats_record__bindgen_ty_2, bytes) - 0usize];
+    ["Offset of field: xdp_stats_record__bindgen_ty_2::rx_bytes"]
+        [::std::mem::offset_of!(xdp_stats_record__bindgen_ty_2, rx_bytes) - 0usize];
 };
+impl Default for xdp_stats_record__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of xdp_stats_record"][::std::mem::size_of::<xdp_stats_record>() - 16usize];
+    ["Alignment of xdp_stats_record"][::std::mem::align_of::<xdp_stats_record>() - 8usize];
+};
+impl Default for xdp_stats_record {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct sockaddr_xdp {
