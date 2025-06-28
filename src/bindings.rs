@@ -11876,6 +11876,17 @@ unsafe extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
+    pub fn xsk_umem__create_with_fd(
+        umem: *mut *mut xsk_umem,
+        fd: ::std::os::raw::c_int,
+        umem_area: *mut ::std::os::raw::c_void,
+        size: __u64,
+        fill: *mut xsk_ring_prod,
+        comp: *mut xsk_ring_cons,
+        config: *const xsk_umem_config,
+    ) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
     pub fn xsk_socket__create(
         xsk: *mut *mut xsk_socket,
         ifname: *const ::std::os::raw::c_char,
