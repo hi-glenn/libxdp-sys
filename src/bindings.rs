@@ -491,6 +491,7 @@ pub const XSK_UMEM__DEFAULT_FRAME_SHIFT: u32 = 12;
 pub const XSK_UMEM__DEFAULT_FRAME_SIZE: u32 = 4096;
 pub const XSK_UMEM__DEFAULT_FRAME_HEADROOM: u32 = 0;
 pub const XSK_UMEM__DEFAULT_FLAGS: u32 = 0;
+pub const XSK_UMEM__DEFAULT_TX_METADATA_LEN: u32 = 0;
 pub const XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD: u32 = 1;
 pub const XSK_LIBXDP_FLAGS__INHIBIT_PROG_LOAD: u32 = 1;
 pub type __gnuc_va_list = __builtin_va_list;
@@ -11796,6 +11797,39 @@ const _: () = {
     ["Offset of field: xsk_umem_config::flags"]
         [::std::mem::offset_of!(xsk_umem_config, flags) - 16usize];
 };
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct xsk_umem_opts {
+    pub sz: usize,
+    pub fd: ::std::os::raw::c_int,
+    pub size: __u64,
+    pub fill_size: __u32,
+    pub comp_size: __u32,
+    pub frame_size: __u32,
+    pub frame_headroom: __u32,
+    pub flags: __u32,
+    pub tx_metadata_len: __u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of xsk_umem_opts"][::std::mem::size_of::<xsk_umem_opts>() - 48usize];
+    ["Alignment of xsk_umem_opts"][::std::mem::align_of::<xsk_umem_opts>() - 8usize];
+    ["Offset of field: xsk_umem_opts::sz"][::std::mem::offset_of!(xsk_umem_opts, sz) - 0usize];
+    ["Offset of field: xsk_umem_opts::fd"][::std::mem::offset_of!(xsk_umem_opts, fd) - 8usize];
+    ["Offset of field: xsk_umem_opts::size"][::std::mem::offset_of!(xsk_umem_opts, size) - 16usize];
+    ["Offset of field: xsk_umem_opts::fill_size"]
+        [::std::mem::offset_of!(xsk_umem_opts, fill_size) - 24usize];
+    ["Offset of field: xsk_umem_opts::comp_size"]
+        [::std::mem::offset_of!(xsk_umem_opts, comp_size) - 28usize];
+    ["Offset of field: xsk_umem_opts::frame_size"]
+        [::std::mem::offset_of!(xsk_umem_opts, frame_size) - 32usize];
+    ["Offset of field: xsk_umem_opts::frame_headroom"]
+        [::std::mem::offset_of!(xsk_umem_opts, frame_headroom) - 36usize];
+    ["Offset of field: xsk_umem_opts::flags"]
+        [::std::mem::offset_of!(xsk_umem_opts, flags) - 40usize];
+    ["Offset of field: xsk_umem_opts::tx_metadata_len"]
+        [::std::mem::offset_of!(xsk_umem_opts, tx_metadata_len) - 44usize];
+};
 unsafe extern "C" {
     pub fn xsk_setup_xdp_prog(
         ifindex: ::std::os::raw::c_int,
@@ -11865,6 +11899,51 @@ impl Default for xsk_socket_config {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct xsk_socket_opts {
+    pub sz: usize,
+    pub rx: *mut xsk_ring_cons,
+    pub tx: *mut xsk_ring_prod,
+    pub fill: *mut xsk_ring_prod,
+    pub comp: *mut xsk_ring_cons,
+    pub rx_size: __u32,
+    pub tx_size: __u32,
+    pub libxdp_flags: __u32,
+    pub xdp_flags: __u32,
+    pub bind_flags: __u16,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of xsk_socket_opts"][::std::mem::size_of::<xsk_socket_opts>() - 64usize];
+    ["Alignment of xsk_socket_opts"][::std::mem::align_of::<xsk_socket_opts>() - 8usize];
+    ["Offset of field: xsk_socket_opts::sz"][::std::mem::offset_of!(xsk_socket_opts, sz) - 0usize];
+    ["Offset of field: xsk_socket_opts::rx"][::std::mem::offset_of!(xsk_socket_opts, rx) - 8usize];
+    ["Offset of field: xsk_socket_opts::tx"][::std::mem::offset_of!(xsk_socket_opts, tx) - 16usize];
+    ["Offset of field: xsk_socket_opts::fill"]
+        [::std::mem::offset_of!(xsk_socket_opts, fill) - 24usize];
+    ["Offset of field: xsk_socket_opts::comp"]
+        [::std::mem::offset_of!(xsk_socket_opts, comp) - 32usize];
+    ["Offset of field: xsk_socket_opts::rx_size"]
+        [::std::mem::offset_of!(xsk_socket_opts, rx_size) - 40usize];
+    ["Offset of field: xsk_socket_opts::tx_size"]
+        [::std::mem::offset_of!(xsk_socket_opts, tx_size) - 44usize];
+    ["Offset of field: xsk_socket_opts::libxdp_flags"]
+        [::std::mem::offset_of!(xsk_socket_opts, libxdp_flags) - 48usize];
+    ["Offset of field: xsk_socket_opts::xdp_flags"]
+        [::std::mem::offset_of!(xsk_socket_opts, xdp_flags) - 52usize];
+    ["Offset of field: xsk_socket_opts::bind_flags"]
+        [::std::mem::offset_of!(xsk_socket_opts, bind_flags) - 56usize];
+};
+impl Default for xsk_socket_opts {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 unsafe extern "C" {
     pub fn xsk_umem__create(
         umem: *mut *mut xsk_umem,
@@ -11885,6 +11964,14 @@ unsafe extern "C" {
         comp: *mut xsk_ring_cons,
         config: *const xsk_umem_config,
     ) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
+    pub fn xsk_umem__create_opts(
+        umem_area: *mut ::std::os::raw::c_void,
+        fill: *mut xsk_ring_prod,
+        comp: *mut xsk_ring_cons,
+        opts: *mut xsk_umem_opts,
+    ) -> *mut xsk_umem;
 }
 unsafe extern "C" {
     pub fn xsk_socket__create(
@@ -11909,6 +11996,14 @@ unsafe extern "C" {
         comp: *mut xsk_ring_cons,
         config: *const xsk_socket_config,
     ) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
+    pub fn xsk_socket__create_opts(
+        ifname: *const ::std::os::raw::c_char,
+        queue_id: __u32,
+        umem: *mut xsk_umem,
+        opts: *mut xsk_socket_opts,
+    ) -> *mut xsk_socket;
 }
 unsafe extern "C" {
     pub fn xsk_umem__delete(umem: *mut xsk_umem) -> ::std::os::raw::c_int;
