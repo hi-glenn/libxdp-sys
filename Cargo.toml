@@ -1,6 +1,6 @@
 [package]
 name = "libxdp-sys"
-version = "1.5.7+1.5.7"
+version = "1.5.8+1.5.8"
 edition = "2021"
 description = "Rust bindings for libxdp"
 repository = "https://github.com/hi-glenn/libxdp-sys"
