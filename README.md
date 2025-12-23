@@ -1,7 +1,7 @@
 # Rust bindings for libxdp
 
-```
-git submodule update
+```bash
+git submodule update --remote
 
 cd xdp-tools && git checkout target_tag
 
