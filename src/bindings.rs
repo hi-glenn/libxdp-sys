@@ -452,8 +452,10 @@ pub const XDP_DEFAULT_RUN_PRIO: u32 = 50;
 pub const XDP_BPFFS_ENVVAR: &[u8; 13] = b"LIBXDP_BPFFS\0";
 pub const XDP_BPFFS_MOUNT_ENVVAR: &[u8; 23] = b"LIBXDP_BPFFS_AUTOMOUNT\0";
 pub const XDP_OBJECT_ENVVAR: &[u8; 19] = b"LIBXDP_OBJECT_PATH\0";
+pub const XDP_ATTACH_DEVBIND: u32 = 1;
+pub const XDP_ATTACH_FLAGS: u32 = 1;
 pub const XDP_METADATA_SECTION: &[u8; 13] = b"xdp_metadata\0";
-pub const XDP_DISPATCHER_VERSION: u32 = 2;
+pub const XDP_DISPATCHER_VERSION: u32 = 3;
 pub const XDP_DISPATCHER_MAGIC: u32 = 236;
 pub const XDP_DISPATCHER_RETVAL: u32 = 31;
 pub const MAX_DISPATCHER_ACTIONS: u32 = 10;
@@ -11292,6 +11294,9 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub fn xdp_multiprog__xdp_frags_support(mp: *const xdp_multiprog) -> bool;
 }
+unsafe extern "C" {
+    pub fn xdp_multiprog__xdp_dev_bound(mp: *const xdp_multiprog) -> bool;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct xdp_program_opts {
@@ -11350,10 +11355,11 @@ pub struct xdp_dispatcher_config {
     pub chain_call_actions: [__u32; 10usize],
     pub run_prios: [__u32; 10usize],
     pub program_flags: [__u32; 10usize],
+    pub is_xdp_devbound: __u8,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of xdp_dispatcher_config"][::std::mem::size_of::<xdp_dispatcher_config>() - 124usize];
+    ["Size of xdp_dispatcher_config"][::std::mem::size_of::<xdp_dispatcher_config>() - 128usize];
     ["Alignment of xdp_dispatcher_config"]
         [::std::mem::align_of::<xdp_dispatcher_config>() - 4usize];
     ["Offset of field: xdp_dispatcher_config::magic"]
@@ -11370,6 +11376,8 @@ const _: () = {
         [::std::mem::offset_of!(xdp_dispatcher_config, run_prios) - 44usize];
     ["Offset of field: xdp_dispatcher_config::program_flags"]
         [::std::mem::offset_of!(xdp_dispatcher_config, program_flags) - 84usize];
+    ["Offset of field: xdp_dispatcher_config::is_xdp_devbound"]
+        [::std::mem::offset_of!(xdp_dispatcher_config, is_xdp_devbound) - 124usize];
 };
 #[repr(C)]
 #[repr(align(64))]
